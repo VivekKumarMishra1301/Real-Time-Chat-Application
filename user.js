@@ -27,3 +27,11 @@ module.exports.search=function search(friend){
     }
     return false;
 }
+module.exports.privateReciever=function privateReciever(friend){
+    for(let key in userNames){
+        if(userNames[key].data.nickName==friend){
+            return userNames[key].connection.id;
+        }
+    }
+    return false;
+}
