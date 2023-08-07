@@ -20,7 +20,9 @@ app.get("/script.js",function(req,res){
 app.get("/",function(req,res){
      res.sendFile(__dirname+"/index.html");
 });
-
+app.get('/chatoption',function(req,res){
+   res.sendFile(__dirname+"/chatoption.html");
+});
 
 app.get("/about",function(req,res){
    res.send("About");
@@ -47,16 +49,17 @@ socketServer.on('connection', function(socket) {
   });
 
 
-
-   socket.on("connect user",function(userName){
+   socket.on("connect user",function(userName,nickName){
       // console.log(userName);
       updateConnectedUser(socket,userName);
+      updateConnectedUserNickName(socket,userName,nickName);
+      socket.emit('user updated','success',userName);
    });
    
-   socket.on("update user",function(userName,nickName){
-      console.log(userName,nickName);
-      updateConnectedUserNickName(socket,userName,nickName);
-   });
+   // socket.on("update user",function(userName,nickName){
+   //    console.log(userName,nickName);
+   //    updateConnectedUserNickName(socket,userName,nickName);
+   // });
 
    socket.on("search",function(friend){
       findFriend(socket,friend);
@@ -65,20 +68,36 @@ socketServer.on('connection', function(socket) {
 
 //Managing Chats
 
-socket.on("chat message",function(msg){
-   socket.broadcast.emit('chat from server', msg);
-   console.log("message:"+msg);
-   //receiving message fro the client
-   // socketServer.emit("chat message",msg);
-   // //broadcasting to all online client
-   // socketServer.emit("chat from server",msg);
+socket.on("joinRoom",function(room){
+   socket.join(room);
+   socket.emit("roomJoined",room);
 });
 
 
 
+socket.on("chat message",function(msg,sender,reciever,time){
+   console.log("message:"+msg);
+   console.log(sender);
+   console.log(reciever);
+   const rec=userBase.privateReciever(reciever);
+   console.log(rec);
+
+   if (rec) {
+      // Emit the private message only to the recipient
+      socket.to(rec).emit('private message', sender,msg,time);
+   // socket.broadcast.emit('chat from server', msg);
+   //receiving message fro the client
+   // socketServer.emit("chat message",msg);
+   // //broadcasting to all online client
+   // socketServer.emit("chat from server",msg);
+}
+});
 
 
-
+socket.on("room messageSent",function(msg,sender,reciever,time) {
+   console.log(msg,sender,reciever,time);
+   socket.to(reciever).emit('room message', sender,msg,time);
+});
 
 
 
@@ -94,7 +113,7 @@ socket.on("chat message",function(msg){
       userData=userBase.setUserNames(socket,userName);
     }
 
-    socket.emit("user updated",userData.data);
+   //  socket.emit("user updated",userData.data);
 
  
 }
@@ -107,7 +126,7 @@ function updateConnectedUserNickName(socket,userName,nickName){
 
 function findFriend(socket,friend){
    let val=userBase.search(friend);
-   socket.emit("after search",val);
+   socket.emit("after search",val,friend);
 }
 
 
